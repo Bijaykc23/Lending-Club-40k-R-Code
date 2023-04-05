@@ -1,0 +1,62 @@
+#Lending CLub 40k data cleaning and  mice imputaion
+## Skills used:setwd(), install.packages(), read.csv(),summary(),dplyr, nytate(),select(),'-c(), write.csv(),md.pattern(),mice(),merge()
+
+#setting working directory
+setwd("C:/Users/bijay/MIS 740")
+
+#install packages
+install.packages("mice")
+
+#use packages
+library("mice")
+library("dplyr")
+library("tidyverse")
+library("randomForest")
+
+dataset = read.csv ('LendingClub40k.csv')
+summary(dataset)
+
+#lower case all the empty title
+l_dataset <-  mutate(dataset, emp_title = tolower(emp_title))
+
+#export the LendingClub40k_lowercase to csv
+write.csv(l_dataset, "C:\\Users\\bijay\\MIS 740\\LendingClub40k_lowercase.csv", row.names=FALSE)
+
+#futher analysis was done on excel and Rapid miner
+#incorrect job titles were removed and mistyped jobs titles were corrected as well
+# Rapid miner was used to get rid of outliers
+#original file - number of unique job title 19110
+#after lower case - number of unique job title 16049
+#after futher analysis in excel and removing some of invalid job titles such as title starting with numbers and many more - number of unique job title 16049
+#the file was saved as LendingClub40k_corrected
+
+#opening lendingCLub40K_correctedfile
+data <- read.csv('LendingClub40k_corrected.csv',stringsAsFactors = TRUE,na.strings=c("",NA))
+summary(data)
+
+#storing the desc data for future
+data_desc <- subset(data , select = c(desc , id))
+
+#drop desc and zip_code
+in_data = subset(data , select = -c(desc,zip_code))
+
+summary(in_data)
+
+
+#checking out the NA's that we are working with
+in_data %>% summarise_all(funs(sum(is.na(.))))
+
+#looking at the misssing data patterns
+md.pattern(in_data)
+
+#use mice function to find imputed values
+mymice_cdata <- mice(in_data,m=5,method="rf")
+
+#complete the dataset with the imputed dataset
+fin_mymice_cdata <-complete(mymice_cdata,1)
+
+#check for any missing values in finished data set
+sapply(fin_mymice_cdata,function(x) sum(is.na(x)))
+
+#combining final dataset(fin_mymice_cdata) and data_desc
+Clean_dataset = merge(fin_mymice_cdata,data_desc, by.x="id",by.y="id")
